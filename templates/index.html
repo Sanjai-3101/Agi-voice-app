@@ -3,56 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AGI Cloud Voice Assistant</title>
+    <title>Voice AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-ring-active {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .sound-wave-bar {
+            animation: wave 1.2s ease-in-out infinite alternate;
+        }
+        @keyframes wave {
+            0% { height: 8px; }
+            100% { height: 32px; }
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between p-4 md:p-8 font-sans selection:bg-indigo-500 selection:text-white">
 
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl">
-        <h1 class="text-3xl font-bold mb-2">🎙️ AGI Cloud Voice Agent</h1>
-        <p class="text-slate-400 text-sm mb-6">Hosted entirely on Render. No local servers required.</p>
+    <!-- Background Decorative Glows -->
+    <div class="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none"></div>
+    <div class="fixed bottom-10 right-10 w-[300px] h-[300px] bg-rose-600/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-        <button id="micBtn" onclick="startListening()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-8 rounded-full transition duration-200 transform active:scale-95 shadow-lg flex items-center justify-center gap-3 mx-auto">
-            <span id="btnText">Click to Speak</span>
-        </button>
-
-        <div class="mt-6 bg-slate-900 rounded-lg p-4 border border-slate-700/50 text-left space-y-2">
-            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Status Log</p>
-            <p id="transcript" class="text-sm text-indigo-300 italic">Waiting for command...</p>
-            <p id="status" class="text-xs text-slate-400"></p>
+    <!-- Header Navigation -->
+    <header class="w-full max-w-4xl flex items-center justify-between py-4 border-b border-slate-800/80 backdrop-blur-md z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <i class="fa-solid font-bold text-white fa-brain"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Jarvis AI</h1>
+                <p class="text-[11px] text-slate-400 font-medium">Cloud Orchestrator</p>
+            </div>
         </div>
-    </div>
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Engine Online
+        </div>
+    </header>
 
+    <!-- Main Interactive Workspace -->
+    <main class="w-full max-w-xl my-auto py-8 flex flex-col items-center z-10">
+        
+        <!-- Microphone Interaction Center -->
+        <div class="relative flex items-center justify-center my-6">
+            <!-- Pulsing Halo for Listening Mode -->
+            <div id="halo" class="hidden absolute w-48 h-48 rounded-full bg-rose-500/20 blur-md pulse-ring-active"></div>
+            
+            <button id="micBtn" onclick="startListening()" class="relative z-10 w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 hover:from-indigo-400 hover:to-violet-600 active:scale-95 transition-all duration-300 shadow-2xl shadow-indigo-500/30 flex flex-col items-center justify-center border-4 border-slate-900 group cursor-pointer">
+                <i id="micIcon" class="fa-solid fa-microphone text-3xl text-white group-hover:scale-110 transition-transform duration-200"></i>
+                <span id="btnSubtext" class="text-[10px] font-bold tracking-wider uppercase mt-2 text-indigo-100/80">Tap to speak</span>
+            </button>
+        </div>
+
+        <!-- Animated Wave Visualizer (Active during listening) -->
+        <div id="visualizer" class="hidden flex items-center gap-1.5 h-10 my-2">
+            <div class="sound-wave-bar w-1 bg-rose-500 rounded-full" style="animation-delay: 0.1s"></div>
+            <div class="sound-wave-bar w-1 bg-rose-400 rounded-full" style="animation-delay: 0.3s"></div>
+            <div class="sound-wave-bar w-1 bg-violet-400 rounded-full" style="animation-delay: 0.2s"></div>
+            <div class="sound-wave-bar w-1 bg-indigo-400 rounded-full" style="animation-delay: 0.4s"></div>
+            <div class="sound-wave-bar w-1 bg-rose-500 rounded-full" style="animation-delay: 0.15s"></div>
+        </div>
+
+        <!-- Live Transcript Card -->
+        <div class="w-full mt-6 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-5 shadow-2xl transition-all">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-terminal text-indigo-400"></i> Active Command
+                </span>
+                <span id="statusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium border border-slate-700/50">Ready</span>
+            </div>
+            
+            <p id="transcript" class="text-base font-medium text-slate-200 min-h-[48px] flex items-center justify-center text-center italic">
+                "Click the microphone and speak your query..."
+            </p>
+            
+            <div id="status" class="mt-3 text-xs text-center text-indigo-300/80 font-mono truncate"></div>
+        </div>
+
+        <!-- Quick Sample Commands -->
+        <div class="w-full mt-8">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center mb-3">Try saying</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <button onclick="setSampleCommand('Open YouTube and search Vijay songs and play')" class="p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all text-left flex items-center gap-2.5 group">
+                    <i class="fa-brands fa-youtube text-red-500 group-hover:scale-110 transition-transform"></i>
+                    <span class="truncate">"Play Vijay songs on YouTube"</span>
+                </button>
+                <button onclick="setSampleCommand('Open Gmail and update to sharanbalaji and type You have completed your assignment')" class="p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all text-left flex items-center gap-2.5 group">
+                    <i class="fa-solid fa-envelope text-indigo-400 group-hover:scale-110 transition-transform"></i>
+                    <span class="truncate">"Email SharanBalaji assignment status"</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-4xl text-center py-4 border-t border-slate-800/60 text-xs text-slate-500">
+        Powered by Render & Flask Backend Automation
+    </footer>
+
+    <!-- Logic Controller Script -->
     <script>
         const micBtn = document.getElementById('micBtn');
-        const btnText = document.getElementById('btnText');
+        const micIcon = document.getElementById('micIcon');
+        const btnSubtext = document.getElementById('btnSubtext');
         const transcriptEl = document.getElementById('transcript');
         const statusEl = document.getElementById('status');
+        const statusBadge = document.getElementById('statusBadge');
+        const halo = document.getElementById('halo');
+        const visualizer = document.getElementById('visualizer');
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
-            alert("Your browser does not support Web Speech API. Please use Google Chrome, Edge, or Safari.");
+            alert("Your browser does not support Web Speech API. Please use Chrome or Edge.");
         } else {
             const recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.lang = 'en-US';
 
             function startListening() {
-                recognition.start();
-                btnText.innerText = "🔴 Listening...";
-                micBtn.classList.replace('bg-indigo-600', 'bg-red-600');
-                statusEl.innerText = "Speak into your microphone...";
+                try {
+                    recognition.start();
+                } catch(e) {
+                    // Avoid error if already running
+                }
             }
+
+            recognition.onstart = () => {
+                halo.classList.remove('hidden');
+                visualizer.classList.remove('hidden');
+                micIcon.className = "fa-solid fa-stop text-3xl text-white";
+                btnSubtext.innerText = "Listening...";
+                
+                micBtn.className = "relative z-10 w-32 h-32 rounded-full bg-gradient-to-br from-rose-500 to-red-600 border-4 border-slate-900 shadow-2xl shadow-rose-500/40 flex flex-col items-center justify-center transition-all scale-105";
+                
+                statusBadge.innerText = "Listening";
+                statusBadge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-medium border border-rose-500/30";
+                
+                transcriptEl.innerText = "Listening to your voice...";
+                statusEl.innerText = "Speak now...";
+            };
 
             recognition.onresult = async (event) => {
                 const userCommand = event.results[0][0].transcript;
                 transcriptEl.innerText = `"${userCommand}"`;
-                btnText.innerText = "🔄 Processing...";
-                micBtn.classList.replace('bg-red-600', 'bg-amber-600');
+                
+                // Set UI to Processing State
+                resetMicUI();
+                statusBadge.innerText = "Processing";
+                statusBadge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium border border-amber-500/30";
+                statusEl.innerText = "Processing audio intent...";
 
                 try {
-                    // Send voice text directly to Render endpoint
                     const response = await fetch('/agent', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -62,24 +169,58 @@
                     const data = await response.json();
 
                     if (data.action === "open_tab") {
+                        statusBadge.innerText = "Redirecting";
+                        statusBadge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/30";
                         statusEl.innerText = `Opening: ${data.url}`;
-                        // Open the URL directly in the browser
-                        window.open(data.url, '_blank');
-                    } else {
-                        statusEl.innerText = "No actionable response received.";
+                        
+                        // Small delay for UX clarity before redirecting
+                        setTimeout(() => {
+                            window.open(data.url, '_blank');
+                        }, 400);
                     }
                 } catch (err) {
-                    statusEl.innerText = "Error contacting server: " + err.message;
-                } finally {
-                    btnText.innerText = "Click to Speak";
-                    micBtn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-8 rounded-full transition duration-200 transform active:scale-95 shadow-lg flex items-center justify-center gap-3 mx-auto";
+                    statusBadge.innerText = "Error";
+                    statusBadge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-medium border border-red-500/30";
+                    statusEl.innerText = "Connection error: " + err.message;
                 }
             };
 
             recognition.onerror = (event) => {
-                statusEl.innerText = "Error detected: " + event.error;
-                btnText.innerText = "Click to Speak";
-                micBtn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-8 rounded-full transition duration-200 transform active:scale-95 shadow-lg flex items-center justify-center gap-3 mx-auto";
+                resetMicUI();
+                statusBadge.innerText = "Idle";
+                statusBadge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium border border-slate-700/50";
+                statusEl.innerText = "Listening cancelled or failed (" + event.error + ")";
+            };
+
+            recognition.onend = () => {
+                resetMicUI();
+            };
+
+            function resetMicUI() {
+                halo.classList.add('hidden');
+                visualizer.classList.add('hidden');
+                micIcon.className = "fa-solid fa-microphone text-3xl text-white group-hover:scale-110 transition-transform duration-200";
+                btnSubtext.innerText = "Tap to speak";
+                micBtn.className = "relative z-10 w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 hover:from-indigo-400 hover:to-violet-600 active:scale-95 transition-all duration-300 shadow-2xl shadow-indigo-500/30 flex flex-col items-center justify-center border-4 border-slate-900 group cursor-pointer";
+            }
+
+            // Helper to simulate speech using sample buttons
+            window.setSampleCommand = async (cmd) => {
+                transcriptEl.innerText = `"${cmd}"`;
+                statusBadge.innerText = "Processing";
+                statusBadge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium border border-amber-500/30";
+                statusEl.innerText = "Sending sample command...";
+
+                const response = await fetch('/agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text_command: cmd })
+                });
+
+                const data = await response.json();
+                if (data.action === "open_tab") {
+                    window.open(data.url, '_blank');
+                }
             };
         }
     </script>
