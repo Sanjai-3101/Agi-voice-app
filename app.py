@@ -2,7 +2,6 @@ import os, re, urllib.parse, urllib.request
 from flask import Flask, abort, jsonify, render_template, request
 
 app = Flask(__name__)
-C = {"sharanbalaji": "sharanbalaji@gmail.com", "sharan balaji": "sharanbalaji@gmail.com", "sharan": "sharanbalaji@gmail.com"}
 
 def get_vid(q):
     try:
@@ -32,16 +31,17 @@ def ai_agent_router():
             target = f"https://www.youtube.com/watch?v={vid}&autoplay=1" if vid else f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(q)}"
 
     elif any(k in cmd for k in ["gmail", "email", "mail"]):
-        to = next((email for name, email in C.items() if name in cmd), "")
-        if not to:
-            m = re.search(r"(?:update to|to)\s+([a-zA-Z0-9._%+\s]+?)(?=\s+(?:and|type|write|saying|with|$))", cmd)
-            if m:
-                clean = m.group(1).strip().replace(" at ", "@").replace(" dot ", ".").replace(" ", "")
-                to = C.get(clean, clean.replace("gmail.com", "@gmail.com") if "gmail.com" in clean and "@" not in clean else clean)
+        to = ""
+        m = re.search(r"(?:update to|send to|to)\s+([a-zA-Z0-9._%+\s]+?)(?=\s+(?:and|type|write|saying|with|$))", cmd)
+        if m:
+            to = m.group(1).strip().replace(" at ", "@").replace(" dot ", ".").replace(" ", "")
+
+        # Auto-append @gmail.com to any name/handle missing an @ symbol
+        if to and "@" not in to:
+            to = f"{to}@gmail.com"
 
         bm = re.search(r"(?:type|write|saying|content)\s+(.*)", cmd)
         body = (b := bm.group(1).strip())[0].upper() + b[1:] if bm and bm.group(1).strip() else ""
-        to = to.replace(" ", "")
 
         target = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&to={urllib.parse.quote(to)}&body={urllib.parse.quote(body)}" if to or body else "https://mail.google.com"
 
