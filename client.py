@@ -4,7 +4,7 @@ from flask import Flask, jsonify, render_template, request
 import requests
 import speech_recognition as sr
 
-app = Flask(__name__, template_folder=".")
+app = Flask(__name__)  # Looks in ./templates/ by default
 
 RENDER_API_URL = "https://agi-voice-app.onrender.com/agent"
 
