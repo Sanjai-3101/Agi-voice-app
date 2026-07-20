@@ -2,68 +2,53 @@ import os, re, urllib.parse, urllib.request
 from flask import Flask, abort, jsonify, render_template, request
 
 app = Flask(__name__)
-CONTACTS = {"sharanbalaji": "sharanbalaji@gmail.com", "sharan balaji": "sharanbalaji@gmail.com", "sharan": "sharanbalaji@gmail.com"}
+C = {"sharanbalaji": "sharanbalaji@gmail.com", "sharan balaji": "sharanbalaji@gmail.com", "sharan": "sharanbalaji@gmail.com"}
 
-def get_first_youtube_video_id(query):
+def get_vid(q):
     try:
-        url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        html = urllib.request.urlopen(req, timeout=5).read().decode("utf-8")
-        ids = re.findall(r"\"videoId\":\"([^\"]+)\"", html)
+        req = urllib.request.Request(f"https://www.youtube.com/results?search_query={urllib.parse.quote(q)}", headers={"User-Agent": "Mozilla/5.0"})
+        ids = re.findall(r"\"videoId\":\"([^\"]+)\"", urllib.request.urlopen(req, timeout=5).read().decode("utf-8"))
         return ids[0] if ids else None
-    except Exception:
-        return None
+    except Exception: return None
 
 @app.route("/", methods=["GET"])
-def home():
-    return render_template("index.html")
+def home(): return render_template("index.html")
 
 @app.route("/agent", methods=["POST"])
 def ai_agent_router():
-    data = request.get_json(silent=True)
-    if not data or "text_command" not in data:
-        abort(400, description="Missing 'text_command' in request body")
+    d = request.get_json(silent=True)
+    if not d or "text_command" not in d: abort(400, description="Missing 'text_command' in request body")
+    
+    cmd = d["text_command"].strip().lower()
 
-    command = data["text_command"].strip().lower()
-
-    if "youtube" in command:
-        query = command
+    if "youtube" in cmd:
+        q = cmd
         for p in ["open youtube and search", "open youtube and play", "open youtube", "search for", "search", "and play", "play", "on youtube"]:
-            query = query.replace(p, "")
-        query = query.strip()
-        if query:
-            vid = get_first_youtube_video_id(query)
-            target = f"https://www.youtube.com/watch?v={vid}&autoplay=1" if vid else f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(query)}"
+            q = q.replace(p, "")
+        q = q.strip()
+        if not q: target = "https://www.youtube.com"
         else:
-            target = "https://www.youtube.com"
-        return jsonify({"action": "open_tab", "url": target})
+            vid = get_vid(q)
+            target = f"https://www.youtube.com/watch?v={vid}&autoplay=1" if vid else f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(q)}"
 
-    elif any(kw in command for kw in ["gmail", "email", "mail"]):
-        recipient, body = "", ""
-        for name, email in CONTACTS.items():
-            if name in command:
-                recipient = email
-                break
+    elif any(k in cmd for k in ["gmail", "email", "mail"]):
+        to = next((email for name, email in C.items() if name in cmd), "")
+        if not to:
+            m = re.search(r"(?:update to|to)\s+([a-zA-Z0-9._%+\s]+?)(?=\s+(?:and|type|write|saying|with|$))", cmd)
+            if m:
+                clean = m.group(1).strip().replace(" at ", "@").replace(" dot ", ".").replace(" ", "")
+                to = C.get(clean, clean.replace("gmail.com", "@gmail.com") if "gmail.com" in clean and "@" not in clean else clean)
 
-        if not recipient:
-            to_match = re.search(r"(?:update to|to)\s+([a-zA-Z0-9._%+\s]+?)(?=\s+(?:and|type|write|saying|with|$))", command)
-            if to_match:
-                clean = to_match.group(1).strip().replace(" at ", "@").replace(" dot ", ".").replace(" ", "")
-                recipient = CONTACTS.get(clean, clean.replace("gmail.com", "@gmail.com") if "gmail.com" in clean and "@" not in clean else clean)
+        bm = re.search(r"(?:type|write|saying|content)\s+(.*)", cmd)
+        body = (b := bm.group(1).strip())[0].upper() + b[1:] if bm and bm.group(1).strip() else ""
+        to = to.replace(" ", "")
 
-        body_match = re.search(r"(?:type|write|saying|content)\s+(.*)", command)
-        if body_match and body_match.group(1).strip():
-            b = body_match.group(1).strip()
-            body = b[0].upper() + b[1:]
+        target = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&to={urllib.parse.quote(to)}&body={urllib.parse.quote(body)}" if to or body else "https://mail.google.com"
 
-        recipient = recipient.replace(" ", "")
-        if recipient or body:
-            target = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&to={urllib.parse.quote(recipient)}&body={urllib.parse.quote(body)}"
-        else:
-            target = "https://mail.google.com"
-        return jsonify({"action": "open_tab", "url": target})
+    else:
+        target = f"https://www.google.com/search?q={urllib.parse.quote_plus(cmd)}"
 
-    return jsonify({"action": "open_tab", "url": f"https://www.google.com/search?q={urllib.parse.quote_plus(command)}"})
+    return jsonify({"action": "open_tab", "url": target})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
