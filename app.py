@@ -1,24 +1,20 @@
 import os
 import urllib.parse
-from flask import Flask, abort, jsonify, request
+from flask import Flask, abort, jsonify, render_template, request
 
+# Flask automatically looks inside the 'templates/' folder for index.html
 app = Flask(__name__)
 
 
-# Root Health Check Route (Fixes 404 when opening Render URL in a browser)
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify(
-        {
-            "status": "online",
-            "message": "AGI Voice Agent Router API is running successfully!",
-        }
-    )
+    """Serves the dashboard directly from Render."""
+    return render_template("index.html")
 
 
 @app.route("/agent", methods=["POST"])
 def ai_agent_router():
-    """Universal Agent Routing Backend API."""
+    """Processes text commands and returns redirection target URLs."""
     data = request.get_json(silent=True)
 
     if not data or "text_command" not in data:
@@ -26,7 +22,6 @@ def ai_agent_router():
 
     command = data["text_command"].strip().lower()
 
-    # App search URL mapping
     APP_MAPPING = {
         "youtube": (
             "https://www.youtube.com/results?search_query={query}",
@@ -78,9 +73,10 @@ def ai_agent_router():
                 if trigger in command:
                     parts = command.split(trigger, 1)
                     if len(parts) > 1 and parts[1].strip():
-                        raw_query = parts[1].strip()
                         raw_query = (
-                            raw_query.replace(f"in {app_name}", "")
+                            parts[1]
+                            .strip()
+                            .replace(f"in {app_name}", "")
                             .replace(f"on {app_name}", "")
                             .strip()
                         )
@@ -106,7 +102,7 @@ def ai_agent_router():
 
             return jsonify({"action": "open_tab", "url": target_url})
 
-    # Ultimate Fallback: Google search the full query
+    # Fallback to Google Search
     encoded_command = urllib.parse.quote_plus(command)
     return jsonify(
         {
