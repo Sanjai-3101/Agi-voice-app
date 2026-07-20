@@ -4,7 +4,7 @@ from flask import Flask, jsonify, render_template, request
 import requests
 import speech_recognition as sr
 
-app = Flask(__name__)  # Looks in ./templates/ by default
+app = Flask(__name__)  # Expects index.html in ./templates/ directory
 
 RENDER_API_URL = "https://agi-voice-app.onrender.com/agent"
 
@@ -29,10 +29,10 @@ def listen_and_execute():
         user_command = recognizer.recognize_google(audio)
         print(f'🎤 You said: "{user_command}"')
 
-        # Send command to Cloud Router API
+        # Send command to Cloud Router API with 60s timeout for cold-starts
         print("🚀 Sending to Render AI Agent...")
         response = requests.post(
-            RENDER_API_URL, json={"text_command": user_command}
+            RENDER_API_URL, json={"text_command": user_command}, timeout=60
         )
 
         if response.status_code == 200:
@@ -61,7 +61,7 @@ def listen_and_execute():
             jsonify(
                 {
                     "status": "error",
-                    "error": "Agent couldn't process this command.",
+                    "error": f"Agent couldn't process this command. HTTP Status: {response.status_code}",
                 }
             ),
             400,
@@ -87,9 +87,21 @@ def listen_and_execute():
             ),
             400,
         )
+    except requests.exceptions.Timeout:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "error": "Render server took too long to respond (cold start). Try again in a few seconds.",
+                }
+            ),
+            504,
+        )
     except Exception as e:
         return (
-            jsonify({"status": "error", "error": f"Error occurred: {str(e)}"}),
+            jsonify(
+                {"status": "error", "error": f"Error occurred: {str(e)}"}
+            ),
             500,
         )
 
