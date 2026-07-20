@@ -6,7 +6,7 @@ import speech_recognition as sr
 
 app = Flask(__name__, template_folder=".")
 
-RENDER_API_URL = "https://agi-hzja.onrender.com/agent"
+RENDER_API_URL = "https://agi-voice-app.onrender.com"
 
 
 @app.route("/")
