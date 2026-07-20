@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Agent Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse-glowing {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .listening-active {
+            animation: pulse-glowing 1.5s infinite;
+            background-color: #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-robot text-xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-none">A.G.I. Client Hub</h1>
+                <span class="text-xs text-indigo-400 font-medium">Local Controller Connected</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-500/20">
+            <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Render API Online
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl w-full mx-auto p-6 flex-1 grid md:grid-cols-5 gap-6 items-center">
+        
+        <!-- Left Side: Voice Trigger -->
+        <div class="md:col-span-3 flex flex-col items-center justify-center space-y-8 py-8">
+            <div class="text-center">
+                <h2 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    How can I help you today?
+                </h2>
+                <p class="text-slate-400 mt-2 text-sm">Click the microphone to stream a local command</p>
+            </div>
+
+            <!-- Mic Button -->
+            <div class="relative flex items-center justify-center">
+                <button id="micBtn" onclick="triggerVoice()" class="h-32 w-32 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all duration-300 shadow-2xl shadow-indigo-600/30 group focus:outline-none">
+                    <i id="micIcon" class="fa-solid fa-microphone text-4xl group-hover:scale-110 transition-transform"></i>
+                </button>
+            </div>
+
+            <!-- Status Box -->
+            <div id="statusContainer" class="bg-slate-900/60 border border-slate-800 px-6 py-3 rounded-2xl w-full max-w-sm text-center">
+                <p id="statusLabel" class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Status</p>
+                <p id="statusText" class="text-lg font-medium text-slate-300 mt-1">Ready for trigger</p>
+            </div>
+        </div>
+
+        <!-- Right Side: Prompt Ideas & Logs -->
+        <div class="md:col-span-2 space-y-6 self-stretch flex flex-col justify-center">
+            
+            <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5">
+                <h3 class="font-bold text-sm text-slate-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-400"></i> Try Saying:
+                </h3>
+                <ul class="space-y-2.5 text-xs text-slate-400">
+                    <li class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 hover:border-indigo-500/50 transition-colors cursor-pointer" onclick="fillCommand('Open Amazon and search for torch light')">
+                        "Open Amazon and search for torch light"
+                    </li>
+                    <li class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 hover:border-indigo-500/50 transition-colors cursor-pointer" onclick="fillCommand('Go to my Gmail account')">
+                        "Go to my Gmail account"
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 flex-1 flex flex-col min-h-[220px]">
+                <h3 class="font-bold text-sm text-slate-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Activity Log
+                </h3>
+                <div id="logContainer" class="flex-1 overflow-y-auto space-y-3 text-xs text-slate-400 pr-1 max-h-[160px]">
+                    <div class="text-slate-500 italic text-center my-auto">No commands run in this session yet.</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 px-6 py-4 text-center text-xs text-slate-500">
+        AI Intent Router Core • Client running locally on Port 5001
+    </footer>
+
+    <script>
+        const micBtn = document.getElementById('micBtn');
+        const micIcon = document.getElementById('micIcon');
+        const statusText = document.getElementById('statusText');
+        const logContainer = document.getElementById('logContainer');
+
+        function triggerVoice() {
+            micBtn.classList.add('listening-active');
+            micIcon.className = "fa-solid fa-circle-notch text-4xl animate-spin";
+            statusText.innerText = "🔴 Listening... Speak now.";
+            statusText.className = "text-lg font-medium text-red-400 mt-1";
+
+            fetch('/trigger', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    resetMicUI();
+                    if (data.status === "success") {
+                        statusText.innerText = "Success! Action dispatched.";
+                        statusText.className = "text-lg font-medium text-emerald-400 mt-1";
+                        addLog(data.command_heard, "Success", data.message);
+                    } else {
+                        statusText.innerText = data.error || "Execution failed";
+                        statusText.className = "text-lg font-medium text-amber-400 mt-1";
+                        addLog(data.command_heard || "Unknown", "Failed", data.error || "No matching intent");
+                    }
+                })
+                .catch(err => {
+                    resetMicUI();
+                    statusText.innerText = "Connection lost to local client.";
+                    statusText.className = "text-lg font-medium text-red-500 mt-1";
+                });
+        }
+
+        function resetMicUI() {
+            micBtn.classList.remove('listening-active');
+            micIcon.className = "fa-solid fa-microphone text-4xl group-hover:scale-110 transition-transform";
+        }
+
+        function addLog(command, status, details) {
+            if (logContainer.querySelector('.italic')) {
+                logContainer.innerHTML = '';
+            }
+
+            const isSuccess = status === "Success";
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const logItem = document.createElement('div');
+            logItem.className = `p-3 rounded-xl border ${isSuccess ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'} transition-all`;
+            logItem.innerHTML = `
+                <div class="flex justify-between items-center font-semibold text-slate-300">
+                    <span class="truncate max-w-[150px]">"${command}"</span>
+                    <span class="text-[10px] ${isSuccess ? 'text-emerald-400' : 'text-rose-400'} px-2 py-0.5 rounded-full bg-slate-900/60 border ${isSuccess ? 'border-emerald-500/30' : 'border-rose-500/30'}">
+                        ${status}
+                    </span>
+                </div>
+                <p class="text-[11px] mt-1 text-slate-400">${details}</p>
+                <span class="text-[9px] text-slate-600 mt-1 block text-right">${timeStr}</span>
+            `;
+            logContainer.prepend(logItem);
+        }
+
+        function fillCommand(text) {
+            statusText.innerText = `Tap mic and say: "${text}"`;
+            statusText.className = "text-sm font-medium text-indigo-400 mt-1";
+        }
+    </script>
+</body>
+</html>
