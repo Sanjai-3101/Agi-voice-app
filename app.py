@@ -1,8 +1,19 @@
 import os
 import urllib.parse
-from flask import Flask, request, jsonify, abort
+from flask import Flask, abort, jsonify, request
 
 app = Flask(__name__)
+
+
+# Root Health Check Route (Fixes 404 when opening Render URL in a browser)
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify(
+        {
+            "status": "online",
+            "message": "AGI Voice Agent Router API is running successfully!",
+        }
+    )
 
 
 @app.route("/agent", methods=["POST"])
