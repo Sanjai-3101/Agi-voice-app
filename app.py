@@ -1,4 +1,4 @@
-import os, re, urllib.parse, urllib.request
+import base64, os, re, urllib.parse, urllib.request
 from flask import Flask, abort, jsonify, render_template, request
 
 app = Flask(__name__)
@@ -46,10 +46,37 @@ def ai_agent_router():
             
         display_text = text if text else "Start typing your note here..."
         
-        # Generates a dark-mode editable browser canvas
-        html_content = f"""data:text/html;charset=utf-8,<!DOCTYPE html><html><head><title>JARVIS Note</title><style>body{{background-color:%230f172a;color:%23f8fafc;font-family:'Segoe UI',sans-serif;padding:40px;line-height:1.6;}}div{{outline:none;font-size:22px;white-space:pre-wrap;}}</style></head><body><div contenteditable='true'>{urllib.parse.quote(display_text)}</div></body></html>"""
+        # Raw HTML template
+        raw_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>JARVIS Note</title>
+    <style>
+        body {{
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            margin: 0;
+        }}
+        #editor {{
+            outline: none;
+            font-size: 24px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            min-height: 80vh;
+        }}
+    </style>
+</head>
+<body>
+    <div id="editor" contenteditable="true">{display_text}</div>
+</body>
+</html>"""
         
-        target = html_content
+        # Encode HTML to base64 string to avoid broken URL characters
+        b64_html = base64.b64encode(raw_html.encode('utf-8')).decode('utf-8')
+        target = f"data:text/html;base64,{b64_html}"
 
     else:
         target = f"https://www.google.com/search?q={urllib.parse.quote_plus(cmd)}"
