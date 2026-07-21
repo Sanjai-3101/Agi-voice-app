@@ -1,64 +1,25 @@
-import base64, os, re, urllib.parse, urllib.request
+import os, re, urllib.parse, urllib.request
 from flask import Flask, abort, jsonify, render_template, request
 
 app = Flask(__name__)
 
 def get_vid(q):
     try:
-        req = urllib.request.Request(
-            f"https://www.youtube.com/results?search_query={urllib.parse.quote(q)}", 
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
+        req = urllib.request.Request(f"https://www.youtube.com/results?search_query={urllib.parse.quote(q)}", headers={"User-Agent": "Mozilla/5.0"})
         ids = re.findall(r"\"videoId\":\"([^\"]+)\"", urllib.request.urlopen(req, timeout=5).read().decode("utf-8"))
         return ids[0] if ids else None
-    except Exception: 
-        return None
+    except Exception: return None
 
 @app.route("/", methods=["GET"])
-def home(): 
-    return render_template("index.html")
-
-# Dedicated route for Notepad display
-@app.route("/note", methods=["GET"])
-def note_page():
-    text = request.args.get("text", "")
-    display_text = text if text else "Start typing your note here..."
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>JARVIS Note</title>
-    <style>
-        body {{
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 40px;
-            margin: 0;
-        }}
-        #editor {{
-            outline: none;
-            font-size: 24px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            min-height: 80vh;
-        }}
-    </style>
-</head>
-<body>
-    <div id="editor" contenteditable="true">{display_text}</div>
-</body>
-</html>"""
+def home(): return render_template("index.html")
 
 @app.route("/agent", methods=["POST"])
 def ai_agent_router():
     d = request.get_json(silent=True)
-    if not d or "text_command" not in d: 
-        abort(400, description="Missing 'text_command' in request body")
+    if not d or "text_command" not in d: abort(400, description="Missing 'text_command' in request body")
     
     cmd = d["text_command"].strip().lower()
 
-    # YouTube Route
     if "youtube" in cmd:
         q = cmd
         for p in ["open youtube and search", "open youtube and play", "open youtube", "search for", "search", "and play", "play", "on youtube"]:
@@ -66,7 +27,6 @@ def ai_agent_router():
         q = q.strip()
         target = "https://www.youtube.com" if not q else (f"https://www.youtube.com/watch?v={vid}&autoplay=1" if (vid := get_vid(q)) else f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(q)}")
 
-    # Gmail Route
     elif any(k in cmd for k in ["gmail", "email", "mail", "message"]):
         to, body = "", ""
         if tm := re.search(r"(?:update|send|mail|message)?\s*to\s+([a-zA-Z0-9._%+\s]+?)(?=\s+(?:and|type|write|saying|with|content|that|message|$))", cmd):
@@ -74,19 +34,9 @@ def ai_agent_router():
             to = c if "@" in c else f"{c}@gmail.com"
 
         if bm := re.search(r"(?:type|write|saying|content|message|that)\s+(.*)", cmd):
-            if b := bm.group(1).strip(): 
-                body = b[0].upper() + b[1:]
+            if b := bm.group(1).strip(): body = b[0].upper() + b[1:]
 
         target = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&to={urllib.parse.quote(to)}&body={urllib.parse.quote(body)}" if to or body else "https://mail.google.com"
-
-    # Notes Route (Clean Flask endpoint)
-    elif any(k in cmd for k in ["note", "notes", "memo", "notepad"]):
-        text = ""
-        if m := re.search(r"(?:type|write|saying|that|notes?)\s+(.*)", cmd):
-            text = m.group(1).strip()
-            text = text[0].upper() + text[1:] if text else ""
-
-        target = f"/note?text={urllib.parse.quote(text)}"
 
     else:
         target = f"https://www.google.com/search?q={urllib.parse.quote_plus(cmd)}"
