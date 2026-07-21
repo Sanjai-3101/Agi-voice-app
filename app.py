@@ -18,6 +18,38 @@ def get_vid(q):
 def home(): 
     return render_template("index.html")
 
+# Dedicated route for Notepad display
+@app.route("/note", methods=["GET"])
+def note_page():
+    text = request.args.get("text", "")
+    display_text = text if text else "Start typing your note here..."
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>JARVIS Note</title>
+    <style>
+        body {{
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            margin: 0;
+        }}
+        #editor {{
+            outline: none;
+            font-size: 24px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            min-height: 80vh;
+        }}
+    </style>
+</head>
+<body>
+    <div id="editor" contenteditable="true">{display_text}</div>
+</body>
+</html>"""
+
 @app.route("/agent", methods=["POST"])
 def ai_agent_router():
     d = request.get_json(silent=True)
@@ -47,45 +79,14 @@ def ai_agent_router():
 
         target = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&to={urllib.parse.quote(to)}&body={urllib.parse.quote(body)}" if to or body else "https://mail.google.com"
 
-    # Notes Route (Cloud & Local Safe)
+    # Notes Route (Clean Flask endpoint)
     elif any(k in cmd for k in ["note", "notes", "memo", "notepad"]):
         text = ""
         if m := re.search(r"(?:type|write|saying|that|notes?)\s+(.*)", cmd):
             text = m.group(1).strip()
             text = text[0].upper() + text[1:] if text else ""
 
-        display_text = text if text else "Start typing your note here..."
-
-        # Embedded dark-mode notepad page
-        raw_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>JARVIS Note</title>
-    <style>
-        body {{
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 40px;
-            margin: 0;
-        }}
-        #editor {{
-            outline: none;
-            font-size: 24px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            min-height: 80vh;
-        }}
-    </style>
-</head>
-<body>
-    <div id="editor" contenteditable="true">{display_text}</div>
-</body>
-</html>"""
-        
-        b64_html = base64.b64encode(raw_html.encode('utf-8')).decode('utf-8')
-        target = f"data:text/html;base64,{b64_html}"
+        target = f"/note?text={urllib.parse.quote(text)}"
 
     else:
         target = f"https://www.google.com/search?q={urllib.parse.quote_plus(cmd)}"
