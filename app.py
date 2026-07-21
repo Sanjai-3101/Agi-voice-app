@@ -1,4 +1,4 @@
-import os, re, urllib.parse, urllib.request
+import os, re, time, urllib.parse, urllib.request
 from flask import Flask, abort, jsonify, render_template, request
 
 app = Flask(__name__)
@@ -38,12 +38,10 @@ def ai_agent_router():
 
         target = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&to={urllib.parse.quote(to)}&body={urllib.parse.quote(body)}" if to or body else "https://mail.google.com"
 
-    elif any(k in cmd for k in ["note", "notes", "memo"]):
-        text = ""
-        if m := re.search(r"(?:type|write|saying|that|notes?)\s+(.*)", cmd):
-            text = m.group(1).strip()
-            text = text[0].upper() + text[1:] if text else ""
-        target = f"https://www.memonotepad.com/#{urllib.parse.quote(text)}" if text else "https://www.memonotepad.com/"
+    elif any(k in cmd for k in ["note", "notes", "memo", "rustpad", "notepad"]):
+        # Generates a unique Rustpad session ID based on timestamp
+        room_id = f"jarvis_note_{int(time.time())}"
+        target = f"https://rustpad.io/#/{room_id}"
 
     else:
         target = f"https://www.google.com/search?q={urllib.parse.quote_plus(cmd)}"
